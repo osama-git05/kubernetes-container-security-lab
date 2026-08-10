@@ -1318,7 +1318,131 @@ kubernetes-container-security-lab/
 ```
 
 ---
+---
 
+# Custom Falco Detection Rule
+
+During the initial security testing, writing a file below `/etc` did not trigger an alert using the default Falco rules.
+
+The original test was:
+
+```bash
+kubectl exec deployment/nginx-lab -- touch /etc/test_file_for_falco_rule
+```
+
+### Initial Result
+
+**Not Detected**
+
+Rather than treating this as a failure, the detection coverage was extended by creating a custom Falco rule.
+
+---
+
+## Custom Rule
+
+The custom rule is stored in:
+
+```text
+falco/falco-custom-rules.yaml
+```
+
+The rule monitors file-write activity below `/etc`:
+
+```yaml
+- rule: Write below etc
+  desc: Detect attempts to open files below /etc for writing
+  condition: >
+    (evt.type in (open,openat,openat2) and evt.is_open_write=true and fd.typechar='f' and fd.num>=0)
+    and fd.name startswith /etc
+  output: >
+    File below /etc opened for writing |
+    file=%fd.name
+    user=%user.name
+    process=%proc.name
+    command=%proc.cmdline
+    container=%container.name
+    image=%container.image.repository
+    pod=%k8s.pod.name
+    namespace=%k8s.ns.name
+  priority: WARNING
+  tags: [filesystem, mitre_persistence]
+```
+
+---
+
+## Deploying the Custom Rule
+
+The existing Falco Helm deployment was upgraded using:
+
+```bash
+helm upgrade falco falcosecurity/falco \
+  --namespace falco \
+  --reuse-values \
+  -f falco/falco-custom-rules.yaml
+```
+
+Falco successfully validated the custom rule file:
+
+```text
+/etc/falco/rules.d/custom-rules.yaml | schema validation: ok
+```
+
+---
+
+## Retesting the Activity
+
+The same `/etc` write activity was repeated:
+
+```bash
+kubectl exec deployment/nginx-lab -- touch /etc/test_file_for_falco_rule
+```
+
+Falco logs were then checked:
+
+```bash
+kubectl logs -n falco \
+  -l app.kubernetes.io/name=falco \
+  -c falco \
+  --since=1m | grep "File below /etc"
+```
+
+This time Falco generated a warning:
+
+```text
+Warning File below /etc opened for writing |
+file=/etc/test_file_for_falco_rule
+user=root
+process=touch
+command=touch /etc/test_file_for_falco_rule
+container=nginx
+image=docker.io/library/nginx
+namespace=default
+```
+
+### Evidence
+
+![Custom Falco Rule Detection](screenshots/custom-falco-rule-detected.png)
+
+---
+
+## Detection Improvement
+
+| Stage | Test | Result |
+|---|---|---|
+| Default Falco rules | Write file below `/etc` | Not Detected |
+| Custom Falco rule | Write file below `/etc` | **Detected** |
+
+This demonstrates that Falco detection coverage can be extended by creating rules for behaviors that are not covered by the default ruleset.
+
+The project therefore demonstrates not only runtime monitoring, but also basic **detection engineering** through the creation, deployment, validation, and testing of a custom security rule.
+
+Full test documentation:
+
+```text
+reports/test-04-custom-falco-rule.md
+```
+
+---
 # Authorization
 
 All testing performed in this project was conducted inside a self-owned local lab environment for educational and cybersecurity training purposes.
