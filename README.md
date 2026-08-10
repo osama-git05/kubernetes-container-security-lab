@@ -376,3 +376,133 @@ The next stage will intentionally deploy an insecure Kubernetes pod in order to 
 - Operating without a NetworkPolicy
 
 These weaknesses will later be compared against a hardened Kubernetes workload.
+
+---
+
+# Day 3 - Create and Verify an Insecure Pod
+
+## Goal
+
+Deploy an intentionally insecure Kubernetes pod and identify common container security weaknesses before applying hardening controls.
+
+## Insecure Pod Deployment
+
+An Ubuntu pod was created using:
+
+```text
+manifests/insecure-pod.yaml
+```
+
+The pod was intentionally configured with privileged mode enabled.
+
+The manifest was deployed using:
+
+```bash
+kubectl apply -f insecure-pod.yaml
+```
+
+The pod status was checked using:
+
+```bash
+kubectl get pod insecure-pod -o wide
+```
+
+The pod successfully entered the `Running` state.
+
+---
+
+## Root User Verification
+
+The user identity inside the container was checked using:
+
+```bash
+kubectl exec insecure-pod -- id
+```
+
+The output confirmed:
+
+```text
+uid=0(root)
+```
+
+This means the container is running as the root user.
+
+### Security Risk
+
+Running a container as root increases the potential impact of a compromise because processes inside the container have elevated privileges.
+
+### Evidence
+
+![Insecure Pod Running as Root](screenshots/day3-insecure-root.png)
+
+---
+
+## Privileged Mode Verification
+
+The pod manifest was inspected and confirmed to contain:
+
+```yaml
+securityContext:
+  privileged: true
+```
+
+### Security Risk
+
+Privileged containers weaken normal container isolation and provide significantly greater access to the underlying environment.
+
+### Evidence
+
+![Privileged Container Configuration](screenshots/day3-privileged-context.png)
+
+---
+
+## Additional Security Findings
+
+The insecure workload also contains the following weaknesses:
+
+- No CPU resource limits
+- No memory resource limits
+- No Kubernetes NetworkPolicy
+
+NetworkPolicy configuration was checked using:
+
+```bash
+kubectl get networkpolicy
+```
+
+No NetworkPolicy was configured at this stage.
+
+---
+
+## Day 3 Success Checks
+
+- [x] Insecure pod deployed
+- [x] Pod status is `Running`
+- [x] Container confirmed to run as root
+- [x] `privileged: true` confirmed
+- [x] No resource limits identified
+- [x] No NetworkPolicy configured
+- [x] Security findings documented
+- [x] Evidence screenshots added
+
+---
+
+## Day 3 Result
+
+Day 3 was completed successfully.
+
+An intentionally insecure Kubernetes workload was deployed and inspected. The container was confirmed to run as the root user with privileged mode enabled.
+
+Additional weaknesses were identified, including the absence of CPU and memory limits and the lack of a NetworkPolicy.
+
+These findings create the insecure baseline that will later be compared against a hardened Kubernetes workload.
+
+---
+
+## Next Step
+
+### Day 4 - Install Falco and Capture a Runtime Security Alert
+
+The next stage will introduce runtime security monitoring using Falco.
+
+Falco will be installed into the Kubernetes cluster using Helm, and a controlled test event will be generated inside the Nginx container to confirm that suspicious runtime activity can be detected.
