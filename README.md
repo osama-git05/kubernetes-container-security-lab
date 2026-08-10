@@ -2,37 +2,251 @@
 
 A hands-on Kubernetes security project using Minikube, Nginx, Falco, and container hardening techniques.
 
-## Status
+## Project Status
 
-Project in progress.
+In Progress
 
-## Day 1 - Local Kubernetes Environment
+---
 
-### Goal
+# Day 1 - Local Kubernetes Environment
 
-Set up the local Kubernetes lab environment and confirm that the Minikube cluster is working correctly.
+## Goal
 
-### Environment
+Set up a local Kubernetes environment inside an Ubuntu virtual machine and verify that the cluster is functioning correctly.
 
-- Ubuntu 24.04 LTS Virtual Machine
-- VirtualBox
+## Environment
+
+The lab environment consists of:
+
+- Ubuntu 24.04 LTS
+- Oracle VirtualBox
 - Docker
 - kubectl
 - Minikube
 - Helm
 - Git
 
-### Implementation
+The virtual machine was configured with:
 
-The following tools were installed and configured:
+- 4 CPU cores
+- 8 GB RAM
+- 50 GB virtual storage
 
-- Git for project and repository management
-- Docker as the local container platform
-- kubectl for interacting with Kubernetes
-- Minikube for creating a local Kubernetes cluster
-- Helm for installing Kubernetes applications later in the project
+---
 
-The Minikube cluster was started using the Docker driver and containerd runtime.
+## Tools Installed
+
+### Git
+
+Git was installed for project and repository management.
+
+```bash
+sudo apt install -y git
+```
+
+The installation was verified using:
+
+```bash
+git --version
+```
+
+---
+
+### Docker
+
+Docker was installed to provide the container environment required by Minikube.
+
+```bash
+sudo apt install -y docker.io
+```
+
+Docker was enabled and started:
+
+```bash
+sudo systemctl enable --now docker
+```
+
+The current user was added to the Docker group:
+
+```bash
+sudo usermod -aG docker $USER
+```
+
+Docker functionality was verified using:
+
+```bash
+docker run --rm hello-world
+```
+
+The test completed successfully, confirming that Docker was operational.
+
+---
+
+### kubectl
+
+kubectl was installed to allow interaction with the Kubernetes cluster.
+
+```bash
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+```
+
+The binary was installed using:
+
+```bash
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+```
+
+The installation was verified using:
+
+```bash
+kubectl version --client
+```
+
+---
+
+### Minikube
+
+Minikube was installed to create a local single-node Kubernetes cluster.
+
+```bash
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+```
+
+The Minikube binary was installed using:
+
+```bash
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+```
+
+The installation was verified using:
+
+```bash
+minikube version
+```
+
+---
+
+### Helm
+
+Helm was installed to manage Kubernetes applications and will later be used to deploy Falco.
+
+```bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+
+The installation was verified using:
+
+```bash
+helm version
+```
+
+---
+
+# Kubernetes Cluster Deployment
+
+The local Kubernetes cluster was created using Minikube.
+
+The Docker driver was selected and the cluster was configured with 4 CPUs and approximately 6 GB of memory.
 
 ```bash
 minikube start --driver=docker --container-runtime=containerd --cpus=4 --memory=6144
+```
+
+Minikube successfully created the Kubernetes cluster and configured kubectl to communicate with it.
+
+---
+
+# Kubernetes Node Verification
+
+The Kubernetes node was checked using:
+
+```bash
+kubectl get nodes
+```
+
+The Minikube control-plane node successfully reported a:
+
+```text
+Ready
+```
+
+status.
+
+This confirmed that the Kubernetes control-plane node was operational.
+
+## Evidence
+
+![Kubernetes Node Ready](screenshots/day1-cluster-ready.png)
+
+The screenshot above confirms that the Minikube Kubernetes node is running successfully with a `Ready` status.
+
+---
+
+# Kubernetes System Pod Verification
+
+The Kubernetes system components were checked using:
+
+```bash
+kubectl get pods -A
+```
+
+This command displays pods running across all Kubernetes namespaces.
+
+The Kubernetes system pods were confirmed to be operational.
+
+## Evidence
+
+![Kubernetes System Pods](screenshots/day1-system-pods.png)
+
+The screenshot above shows the Kubernetes system components running inside the Minikube cluster.
+
+---
+
+# Day 1 Success Checks
+
+- [x] Ubuntu 24.04 LTS virtual machine configured
+- [x] Internet connectivity confirmed
+- [x] Git installed
+- [x] Docker installed
+- [x] Docker functionality verified
+- [x] kubectl installed
+- [x] Minikube installed
+- [x] Helm installed
+- [x] Minikube cluster created
+- [x] Kubernetes control-plane node is `Ready`
+- [x] Kubernetes system pods are operational
+
+---
+
+# Day 1 Result
+
+Day 1 was completed successfully.
+
+A functional local Kubernetes environment was created using Minikube inside an Ubuntu 24.04 LTS virtual machine.
+
+Docker was configured as the local container platform, while kubectl was installed for Kubernetes cluster management. Minikube successfully created the local Kubernetes cluster, and Helm was installed for application deployment later in the project.
+
+The Kubernetes control-plane node was verified as being in a `Ready` state, and the Kubernetes system components were confirmed to be operational.
+
+The environment is now ready for the next stage of the project, where an Nginx workload will be deployed inside Kubernetes.
+
+---
+
+# Next Step
+
+## Day 2 - Deploy the Nginx Workload
+
+The next stage of the project will:
+
+- Create an Nginx Kubernetes Deployment
+- Create a Kubernetes Service
+- Deploy the Nginx container
+- Verify the pod is running
+- Access the Nginx website through Minikube
+- Document the deployment with screenshots
+
+---
+
+# Authorization
+
+All testing performed as part of this project is conducted inside a self-owned local lab environment for educational and cybersecurity training purposes.
