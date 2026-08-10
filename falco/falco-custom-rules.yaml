@@ -1,0 +1,19 @@
+customRules:
+  custom-rules.yaml: |-
+    - rule: Write below etc
+      desc: Detect attempts to open files below /etc for writing
+      condition: >
+        (evt.type in (open,openat,openat2) and evt.is_open_write=true and fd.typechar='f' and fd.num>=0)
+        and fd.name startswith /etc
+      output: >
+        File below /etc opened for writing |
+        file=%fd.name
+        user=%user.name
+        process=%proc.name
+        command=%proc.cmdline
+        container=%container.name
+        image=%container.image.repository
+        pod=%k8s.pod.name
+        namespace=%k8s.ns.name
+      priority: WARNING
+      tags: [filesystem, mitre_persistence]
