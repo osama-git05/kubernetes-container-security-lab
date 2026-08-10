@@ -250,3 +250,129 @@ The next stage of the project will:
 # Authorization
 
 All testing performed as part of this project is conducted inside a self-owned local lab environment for educational and cybersecurity training purposes.
+
+---
+
+# Day 2 - Deploy the Nginx Workload
+
+## Goal
+
+Deploy a simple Nginx web application inside the Kubernetes cluster and verify that it can be accessed successfully.
+
+## Kubernetes Deployment
+
+An Nginx Deployment manifest was created inside the `manifests` directory:
+
+```text
+manifests/nginx-deployment.yaml
+```
+
+The deployment uses the `nginx:1.27-alpine` container image and runs one replica.
+
+The deployment was applied using:
+
+```bash
+kubectl apply -f nginx-deployment.yaml
+```
+
+The deployment and pod status were checked using:
+
+```bash
+kubectl get deployments,pods
+```
+
+The Nginx deployment successfully reported `1/1` ready replicas and the Nginx pod entered the `Running` state.
+
+---
+
+## Kubernetes Service
+
+A NodePort Service was created to expose the Nginx application:
+
+```text
+manifests/nginx-service.yaml
+```
+
+The service was deployed using:
+
+```bash
+kubectl apply -f nginx-service.yaml
+```
+
+All Nginx Kubernetes resources were then verified using:
+
+```bash
+kubectl get deployments,pods,services
+```
+
+The command confirmed that:
+
+- The `nginx-lab` deployment was running
+- The Nginx pod was in the `Running` state
+- The `nginx-service` NodePort service was successfully created
+
+## Evidence
+
+![Nginx Kubernetes Resources](screenshots/day2-nginx-running.png)
+
+The screenshot above shows the Nginx Deployment, Pod, and Service running inside the Kubernetes cluster.
+
+---
+
+## Accessing the Nginx Website
+
+The Minikube service command was used to obtain a local URL for the Nginx application:
+
+```bash
+minikube service nginx-service --url
+```
+
+The generated URL was opened inside the Ubuntu web browser.
+
+The default Nginx welcome page loaded successfully, confirming that traffic could reach the Kubernetes workload through the configured service.
+
+## Evidence
+
+![Nginx Website](screenshots/day2-nginx-website.png)
+
+The screenshot above confirms that the Nginx web application is accessible through the Minikube service.
+
+---
+
+## Day 2 Success Checks
+
+- [x] Nginx Deployment manifest created
+- [x] Nginx Service manifest created
+- [x] Nginx Deployment applied successfully
+- [x] Deployment shows `1/1` ready replicas
+- [x] Nginx pod is `Running`
+- [x] `nginx-service` is available
+- [x] Nginx welcome page is accessible
+- [x] Kubernetes manifests added to the GitHub repository
+
+---
+
+## Day 2 Result
+
+Day 2 was completed successfully.
+
+An Nginx web application was deployed inside the local Kubernetes cluster using a Kubernetes Deployment. A NodePort Service was then created to expose the workload.
+
+The deployment, pod, and service were verified using kubectl, and the Nginx welcome page was successfully accessed through Minikube.
+
+This confirms that the Kubernetes environment can successfully deploy, run, and expose containerized applications.
+
+---
+
+## Next Step
+
+### Day 3 - Create and Verify an Insecure Pod
+
+The next stage will intentionally deploy an insecure Kubernetes pod in order to demonstrate common container security weaknesses, including:
+
+- Running a container as the root user
+- Enabling privileged mode
+- Running without resource limits
+- Operating without a NetworkPolicy
+
+These weaknesses will later be compared against a hardened Kubernetes workload.
