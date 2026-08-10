@@ -1279,19 +1279,23 @@ The project provides practical evidence of Kubernetes administration, container 
 
 # Repository Structure
 
-```text
 kubernetes-container-security-lab/
 ├── README.md
+│
 ├── diagrams/
 │   └── architecture.png
+│
 ├── manifests/
 │   ├── nginx-deployment.yaml
 │   ├── nginx-service.yaml
 │   ├── insecure-pod.yaml
 │   ├── hardened-pod.yaml
 │   └── default-deny-networkpolicy.yaml
+│
 ├── falco/
-│   └── notes-and-alerts.md
+│   ├── notes-and-alerts.md
+│   └── falco-custom-rules.yaml
+│
 ├── screenshots/
 │   ├── day1-cluster-ready.png
 │   ├── day1-system-pods.png
@@ -1306,19 +1310,20 @@ kubernetes-container-security-lab/
 │   ├── day5-test3-privileged-pod.png
 │   ├── day6-hardened-nonroot.png
 │   ├── day6-hardened-security-context.png
-│   └── day6-networkpolicy.png
+│   ├── day6-networkpolicy.png
+│   └── custom-falco-rule-detected.png
+│
 ├── reports/
 │   ├── final-summary.md
+│   ├── day6-hardening-summary.md
 │   ├── test-01-container-shell.md
 │   ├── test-02-file-write-etc.md
 │   ├── test-03-privileged-pod.md
-│   └── day6-hardening-summary.md
+│   └── test-04-custom-falco-rule.md
+│
 └── docs/
+    ├── final-project-report.md
     └── final-project-report.pdf
-```
-
----
----
 
 # Custom Falco Detection Rule
 
