@@ -841,3 +841,271 @@ The next stage will replace insecure settings with stronger Kubernetes container
 - Kubernetes NetworkPolicy
 
 The hardened configuration will then be compared against the insecure baseline.
+
+---
+
+# Day 6 - Harden the Kubernetes Workload
+
+## Goal
+
+Replace the intentionally insecure workload with a hardened Kubernetes pod and apply basic network restrictions.
+
+The hardened configuration was designed to reduce container privileges, limit writable filesystem access, and control CPU and memory usage.
+
+---
+
+## Hardened Pod
+
+A hardened pod manifest was created:
+
+```text
+manifests/hardened-pod.yaml
+```
+
+The workload uses the unprivileged Nginx image:
+
+```text
+nginxinc/nginx-unprivileged:alpine
+```
+
+The pod was deployed using:
+
+```bash
+kubectl apply -f hardened-pod.yaml
+```
+
+The pod status was checked using:
+
+```bash
+kubectl get pod hardened-pod
+```
+
+The hardened workload successfully entered the `Running` state.
+
+---
+
+## Non-Root Execution
+
+The container was configured with:
+
+```yaml
+runAsNonRoot: true
+runAsUser: 101
+runAsGroup: 101
+```
+
+The runtime identity was verified using:
+
+```bash
+kubectl exec hardened-pod -- id
+```
+
+The output confirmed that the container was running with a non-zero UID instead of `uid=0(root)`.
+
+### Evidence
+
+![Hardened Pod Non Root](screenshots/day6-hardened-nonroot.png)
+
+---
+
+## Privilege Escalation Disabled
+
+The hardened container uses:
+
+```yaml
+allowPrivilegeEscalation: false
+```
+
+This prevents processes inside the container from gaining additional privileges.
+
+---
+
+## Linux Capabilities
+
+All Linux capabilities were dropped:
+
+```yaml
+capabilities:
+  drop:
+    - ALL
+```
+
+This reduces the number of privileged operations available to processes inside the container.
+
+---
+
+## Read-Only Root Filesystem
+
+The container was configured with:
+
+```yaml
+readOnlyRootFilesystem: true
+```
+
+During the initial deployment, Nginx failed because it required writable temporary storage under `/tmp`.
+
+The error included:
+
+```text
+mkdir() "/tmp/proxy_temp" failed (30: Read-only file system)
+```
+
+Instead of disabling the read-only filesystem control, a temporary writable volume was mounted only at `/tmp`:
+
+```yaml
+volumeMounts:
+  - name: nginx-tmp
+    mountPath: /tmp
+
+volumes:
+  - name: nginx-tmp
+    emptyDir: {}
+```
+
+After this change, the hardened pod successfully started while keeping the main root filesystem read-only.
+
+---
+
+## Resource Limits
+
+CPU and memory requests and limits were configured:
+
+```yaml
+resources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "100m"
+    memory: "128Mi"
+```
+
+These controls reduce the risk that the container can consume excessive system resources.
+
+---
+
+## Security Context Verification
+
+The main hardening settings were checked using:
+
+```bash
+kubectl get pod hardened-pod -o yaml | grep -E "runAsNonRoot|runAsUser|runAsGroup|allowPrivilegeEscalation|readOnlyRootFilesystem|drop:|cpu:|memory:"
+```
+
+### Evidence
+
+![Hardened Security Context](screenshots/day6-hardened-security-context.png)
+
+---
+
+## Default-Deny NetworkPolicy
+
+A Kubernetes NetworkPolicy was created:
+
+```text
+manifests/default-deny-networkpolicy.yaml
+```
+
+The policy contains:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+```
+
+The policy was applied using:
+
+```bash
+kubectl apply -f default-deny-networkpolicy.yaml
+```
+
+It was verified using:
+
+```bash
+kubectl get networkpolicy
+```
+
+and:
+
+```bash
+kubectl describe networkpolicy default-deny
+```
+
+The output confirmed that selected pods were isolated for both ingress and egress connectivity.
+
+### Evidence
+
+![Default Deny NetworkPolicy](screenshots/day6-networkpolicy.png)
+
+---
+
+## Before and After Comparison
+
+| Security Control | Insecure Pod | Hardened Pod |
+|---|---|---|
+| Container user | Root (`uid=0`) | Non-root (`uid=101`) |
+| Privileged mode | Enabled | Not enabled |
+| Privilege escalation | Unrestricted | Disabled |
+| Linux capabilities | Default capabilities | All dropped |
+| Root filesystem | Writable | Read-only |
+| Writable temporary storage | Unrestricted | Dedicated `/tmp` volume |
+| CPU limits | None | Configured |
+| Memory limits | None | Configured |
+| NetworkPolicy | None | Default deny |
+
+---
+
+## Day 6 Success Checks
+
+- [x] Hardened pod deployed
+- [x] Hardened pod status is `Running`
+- [x] Container runs as non-root
+- [x] Privilege escalation disabled
+- [x] Linux capabilities dropped
+- [x] Root filesystem is read-only
+- [x] Required temporary storage isolated to `/tmp`
+- [x] CPU and memory limits configured
+- [x] Default-deny NetworkPolicy created
+- [x] NetworkPolicy verified
+- [x] Hardening report added to the repository
+- [x] Evidence screenshots added
+
+---
+
+## Day 6 Result
+
+Day 6 was completed successfully.
+
+The insecure Kubernetes baseline was replaced with a significantly more restricted workload.
+
+The hardened pod runs as a non-root user, prevents privilege escalation, drops Linux capabilities, uses a read-only root filesystem, and applies CPU and memory resource limits.
+
+A compatibility issue caused by the read-only filesystem was resolved by providing Nginx with a dedicated writable `/tmp` volume while preserving the security control.
+
+A default-deny NetworkPolicy was also applied to demonstrate basic Kubernetes network isolation.
+
+The project now clearly demonstrates the difference between an intentionally insecure container configuration and a hardened Kubernetes workload.
+
+---
+
+## Next Step
+
+### Day 7 - Final Documentation and Portfolio Completion
+
+The final stage will:
+
+- Review the GitHub repository structure
+- Complete the architecture diagram
+- Finalize the before-and-after comparison
+- Review screenshots and test reports
+- Add project limitations
+- Add future improvements
+- Prepare the project for CV and interview use
+
