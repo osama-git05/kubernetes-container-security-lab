@@ -1109,3 +1109,216 @@ The final stage will:
 - Add future improvements
 - Prepare the project for CV and interview use
 
+---
+
+# Project Architecture
+
+The lab was built inside an Ubuntu 24.04 virtual machine running on VirtualBox.
+
+Minikube provides the local Kubernetes cluster, where the Nginx workload, insecure pod, hardened pod, Falco runtime monitoring, and NetworkPolicy were deployed.
+
+Project evidence and configuration files are stored in this GitHub repository.
+
+![Kubernetes Security Lab Architecture](diagrams/architecture.png)
+
+---
+
+# Final Security Comparison
+
+| Area | Before Hardening | After Hardening |
+|---|---|---|
+| Container user | Root (`uid=0`) | Non-root (`uid=101`) |
+| Container privilege | Privileged mode enabled | Privileged mode not enabled |
+| Privilege escalation | Unrestricted | Disabled |
+| Linux capabilities | Default capabilities | All capabilities dropped |
+| Root filesystem | Writable | Read-only |
+| Temporary storage | Broad writable filesystem | Dedicated writable `/tmp` volume |
+| CPU controls | None | Requests and limits configured |
+| Memory controls | None | Requests and limits configured |
+| Network restriction | No NetworkPolicy | Default-deny NetworkPolicy |
+| Runtime monitoring | No runtime detection | Falco monitoring enabled |
+
+---
+
+# Runtime Detection Result
+
+Falco successfully detected access to the sensitive `/etc/shadow` file from inside the Nginx container.
+
+The alert identified:
+
+- Sensitive file accessed
+- User performing the action
+- Executed process
+- Full command
+- Container name
+- Container image
+- Kubernetes pod
+- Kubernetes namespace
+
+Example detection:
+
+```text
+Warning Sensitive file opened for reading by non-trusted program
+file=/etc/shadow
+user=root
+process=cat
+command=cat /etc/shadow
+container_name=nginx
+container_image_tag=1.27-alpine
+k8s_ns_name=default
+```
+
+Full detection notes are available in:
+
+```text
+falco/notes-and-alerts.md
+```
+
+---
+
+# Security Test Summary
+
+| Test | Action | Falco Result |
+|---|---|---|
+| Test 1 | Interactive shell inside Nginx | Not detected |
+| Test 2 | File written below `/etc` | Not detected |
+| Test 3 | Privileged pod deployment | Not detected |
+| Runtime Detection Test | Read `/etc/shadow` | Detected |
+
+The results demonstrate that Falco was functioning correctly, while also showing that detection coverage depends on the enabled rule set.
+
+Custom Falco rules could be introduced in the future to detect the additional activities that were not covered by the default configuration.
+
+---
+
+# Key Security Controls Implemented
+
+The hardened workload includes:
+
+- Non-root container execution
+- Disabled privilege escalation
+- Dropped Linux capabilities
+- Read-only root filesystem
+- Dedicated writable temporary storage
+- CPU resource requests and limits
+- Memory resource requests and limits
+- Default-deny NetworkPolicy
+- Falco runtime monitoring
+
+---
+
+# Troubleshooting and Lessons Learned
+
+One issue occurred when the hardened Nginx container was configured with:
+
+```yaml
+readOnlyRootFilesystem: true
+```
+
+Nginx failed because it needed writable temporary storage:
+
+```text
+mkdir() "/tmp/proxy_temp" failed (30: Read-only file system)
+```
+
+Instead of removing the security control, a Kubernetes `emptyDir` volume was mounted specifically at `/tmp`.
+
+This allowed Nginx to operate normally while keeping the main root filesystem read-only.
+
+This demonstrated the importance of balancing application requirements with container security controls.
+
+---
+
+# Project Limitations
+
+This project intentionally uses a simplified local environment.
+
+Current limitations include:
+
+- Single-node Minikube cluster
+- Local VirtualBox environment rather than a production cloud cluster
+- Simple Nginx workload
+- No centralized SIEM integration
+- Default Falco rules did not detect every controlled security test
+- NetworkPolicy enforcement depends on the Kubernetes networking implementation
+- No Kubernetes audit-log monitoring
+- No admission-controller security policies
+
+---
+
+# Future Improvements
+
+Possible future extensions include:
+
+- Forward Falco alerts to Wazuh
+- Create custom Falco detection rules
+- Enable Kubernetes audit logging
+- Deploy Calico and perform full NetworkPolicy connectivity testing
+- Add Pod Security Admission controls
+- Integrate centralized SIEM monitoring
+- Deploy the environment to Azure or AWS
+- Add automated security scanning to a CI/CD pipeline
+
+---
+
+# Final Project Conclusion
+
+This project demonstrated a complete Kubernetes defensive security workflow:
+
+**Deploy → Identify Weaknesses → Test → Detect → Harden → Verify → Document**
+
+A local Kubernetes cluster was created using Minikube and used to deploy both normal and intentionally insecure workloads.
+
+Falco was introduced for runtime monitoring and successfully detected suspicious access to a sensitive file inside the Nginx container.
+
+The insecure configuration was then replaced with a hardened workload using non-root execution, restricted privileges, dropped Linux capabilities, a read-only filesystem, resource limits, and network restrictions.
+
+The project provides practical evidence of Kubernetes administration, container security, runtime detection, security testing, troubleshooting, and technical documentation.
+
+---
+
+# Repository Structure
+
+```text
+kubernetes-container-security-lab/
+├── README.md
+├── diagrams/
+│   └── architecture.png
+├── manifests/
+│   ├── nginx-deployment.yaml
+│   ├── nginx-service.yaml
+│   ├── insecure-pod.yaml
+│   ├── hardened-pod.yaml
+│   └── default-deny-networkpolicy.yaml
+├── falco/
+│   └── notes-and-alerts.md
+├── screenshots/
+│   ├── day1-cluster-ready.png
+│   ├── day1-system-pods.png
+│   ├── day2-nginx-running.png
+│   ├── day2-nginx-website.png
+│   ├── day3-insecure-root.png
+│   ├── day3-privileged-context.png
+│   ├── day4-falco-running.png
+│   ├── day4-falco-alert.png
+│   ├── day5-test1-container-shell.png
+│   ├── day5-test2-file-write-etc.png
+│   ├── day5-test3-privileged-pod.png
+│   ├── day6-hardened-nonroot.png
+│   ├── day6-hardened-security-context.png
+│   └── day6-networkpolicy.png
+├── reports/
+│   ├── final-summary.md
+│   ├── test-01-container-shell.md
+│   ├── test-02-file-write-etc.md
+│   ├── test-03-privileged-pod.md
+│   └── day6-hardening-summary.md
+└── docs/
+    └── final-project-report.pdf
+```
+
+---
+
+# Authorization
+
+All testing performed in this project was conducted inside a self-owned local lab environment for educational and cybersecurity training purposes.
