@@ -4,7 +4,7 @@ A hands-on Kubernetes security project using Minikube, Nginx, Falco, and contain
 
 ## Project Status
 
-In Progress
+Completed
 
 ---
 
